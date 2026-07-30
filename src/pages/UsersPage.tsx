@@ -83,7 +83,7 @@ export function UsersPage() {
       <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-extrabold text-ink-900 tracking-tight">Users</h1>
-          <p className="text-sm text-ink-500 mt-0.5">Manage staff and Secretariat members</p>
+          <p className="text-sm text-ink-500 mt-0.5">Manage staff members</p>
         </div>
         <button className="btn-primary" onClick={() => setShowAdd(true)}>
           <UserPlus className="w-4 h-4" />
@@ -189,7 +189,6 @@ function AddUserModal({
     name: '',
     email: '',
     password: '',
-    role: 'staff' as UserRole,
     department: '',
     title: '',
   });
@@ -228,7 +227,6 @@ function AddUserModal({
             email: form.email.trim(),
             password: form.password,
             name: form.name.trim(),
-            role: form.role,
             department: form.department.trim() || null,
             title: form.title.trim() || null,
           }),
@@ -241,7 +239,7 @@ function AddUserModal({
       }
 
       toast('User created successfully', 'success');
-      setForm({ name: '', email: '', password: '', role: 'staff', department: '', title: '' });
+      setForm({ name: '', email: '', password: '', department: '', title: '' });
       onAdded();
       onClose();
     } catch (err) {
@@ -302,17 +300,6 @@ function AddUserModal({
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="label">Role</label>
-            <select
-              value={form.role}
-              onChange={(e) => update({ role: e.target.value as UserRole })}
-              className="input"
-            >
-              <option value="staff">Staff / Secretariat</option>
-              <option value="admin">Admin</option>
-            </select>
-          </div>
-          <div>
             <label className="label">Department</label>
             <input
               type="text"
@@ -322,16 +309,16 @@ function AddUserModal({
               placeholder="e.g. Logistics"
             />
           </div>
-        </div>
-        <div>
-          <label className="label">Title</label>
-          <input
-            type="text"
-            value={form.title}
-            onChange={(e) => update({ title: e.target.value })}
-            className="input"
-            placeholder="e.g. Under-Secretary"
-          />
+          <div>
+            <label className="label">Title</label>
+            <input
+              type="text"
+              value={form.title}
+              onChange={(e) => update({ title: e.target.value })}
+              className="input"
+              placeholder="e.g. Under-Secretary"
+            />
+          </div>
         </div>
       </div>
     </Modal>
