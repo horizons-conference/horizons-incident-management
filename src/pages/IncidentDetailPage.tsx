@@ -23,7 +23,7 @@ import { supabase } from '@/lib/supabase';
 import { PriorityBadge, StatusBadge, TypeBadge } from '@/components/Badges';
 import { ConfirmDialog, Modal } from '@/components/Modal';
 import { PRIORITY_META, STATUS_META, PRIORITIES, STATUSES } from '@/lib/constants';
-import { formatTime, formatDate, resolutionTimeMinutes, formatDuration, formatRelative } from '@/lib/format';
+import { formatTime, formatDate, formatDateTimeLocal, resolutionTimeMinutes, formatDuration, formatRelative } from '@/lib/format';
 import type { IncidentPriority, IncidentStatus, IncidentType } from '@/lib/types';
 
 export function IncidentDetailPage() {
@@ -302,7 +302,7 @@ export function IncidentDetailPage() {
                 <Hand className="w-4 h-4" />
                 <span className="font-semibold">Managed by {incident.claimer?.name ?? 'Unknown'}</span>
                 {incident.claimed_at && (
-                  <span className="text-brand-500 text-xs">· since {formatDate(incident.claimed_at)}</span>
+                  <span className="text-brand-500 text-xs">· Claimed {formatDateTimeLocal(incident.claimed_at)}</span>
                 )}
               </div>
             </div>

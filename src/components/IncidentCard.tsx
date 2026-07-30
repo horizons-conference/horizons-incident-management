@@ -1,9 +1,9 @@
 import { Link } from 'react-router-dom';
-import { MapPin, Clock, User } from 'lucide-react';
+import { MapPin, Clock, User, Hand } from 'lucide-react';
 import type { Incident } from '@/lib/types';
 import { PriorityBadge, StatusBadge, TypeBadge } from './Badges';
 import { PRIORITY_META } from '@/lib/constants';
-import { formatTime, formatRelative } from '@/lib/format';
+import { formatTime, formatRelative, formatDateTimeLocal } from '@/lib/format';
 
 export function IncidentCard({ incident }: { incident: Incident }) {
   const pm = PRIORITY_META[incident.priority];
@@ -59,7 +59,15 @@ export function IncidentCard({ incident }: { incident: Incident }) {
 
         <div className="flex items-center justify-between gap-2 mt-3 pt-3 border-t border-ink-100">
           <p className="text-xs text-ink-500 truncate flex-1">
-            {incident.assigned_to ? (
+            {incident.claimed_by ? (
+              <span className="inline-flex items-center gap-1 text-brand-700 font-semibold">
+                <Hand className="w-3 h-3" />
+                Managed by {incident.claimer?.name ?? 'Secretariat'}
+                {incident.claimed_at && (
+                  <span className="font-normal text-ink-400 ml-1">· {formatDateTimeLocal(incident.claimed_at)}</span>
+                )}
+              </span>
+            ) : incident.assigned_to ? (
               <>
                 Assigned to{' '}
                 <span className="font-semibold text-ink-700">

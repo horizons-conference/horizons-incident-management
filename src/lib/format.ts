@@ -41,6 +41,17 @@ export function isToday(iso: string): boolean {
   );
 }
 
+export function formatDateTimeLocal(iso: string): string {
+  return new Date(iso).toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+}
+
 export function formatDuration(minutes: number): string {
   if (minutes < 1) return '<1m';
   if (minutes < 60) return `${Math.round(minutes)}m`;

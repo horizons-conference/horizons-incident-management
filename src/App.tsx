@@ -21,7 +21,12 @@ function AppShell() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-ink-50">
-        <Loader2 className="w-6 h-6 animate-spin text-ink-400" />
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-12 h-12 rounded-xl overflow-hidden shadow-md">
+            <img src="/images_(3).png" alt="Horizons 2026" className="w-full h-full object-cover" />
+          </div>
+          <Loader2 className="w-5 h-5 animate-spin text-ink-400" />
+        </div>
       </div>
     );
   }

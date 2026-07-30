@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useIncidents } from '@/hooks/useIncidents';
 import { useAuth } from '@/context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { BarChart3, Download, Clock, TrendingUp, MapPin, AlertOctagon } from 'lucide-react';
+import { Download, Clock, TrendingUp, MapPin, AlertOctagon } from 'lucide-react';
 import { INCIDENT_TYPES, PRIORITIES, TYPE_META, PRIORITY_META } from '@/lib/constants';
 import { isToday, formatDuration, resolutionTimeMinutes, toCsv } from '@/lib/format';
 import { useToast } from '@/context/ToastContext';
@@ -177,13 +177,6 @@ export function AnalyticsPage() {
           </div>
         </div>
 
-        {/* Incidents over time */}
-        <div className="card p-5">
-          <h2 className="text-sm font-bold text-ink-500 uppercase tracking-wide mb-4">
-            Incidents Over Time
-          </h2>
-          <TimeChart data={stats.overTime} />
-        </div>
       </div>
     </div>
   );
@@ -217,29 +210,6 @@ function StatBox({
           <p className="text-xs text-ink-500 mt-1">{label}</p>
         </div>
       </div>
-    </div>
-  );
-}
-
-function TimeChart({ data }: { data: { label: string; count: number }[] }) {
-  const max = Math.max(...data.map((d) => d.count), 1);
-  return (
-    <div className="flex items-end gap-1.5 h-32">
-      {data.map((d, i) => (
-        <div key={i} className="flex-1 flex flex-col items-center gap-1 group">
-          <div className="w-full flex-1 flex items-end">
-            <div
-              className="w-full bg-brand-500 rounded-t hover:bg-brand-600 transition-colors relative group"
-              style={{ height: `${(d.count / max) * 100}%`, minHeight: d.count > 0 ? '4px' : '0' }}
-            >
-              <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-xs font-bold text-ink-700 opacity-0 group-hover:opacity-100 transition-opacity">
-                {d.count}
-              </span>
-            </div>
-          </div>
-          <span className="text-[10px] text-ink-400 font-medium">{d.label}</span>
-        </div>
-      ))}
     </div>
   );
 }
@@ -281,31 +251,5 @@ function computeAnalytics(incidents: Incident[]) {
         )
       : '—';
 
-  // Over time — by hour for today, or by day
-  const hourMap = new Map<string, number>();
-  const now = new Date();
-  for (let h = 0; h < 24; h++) {
-    const d = new Date(now);
-    d.setHours(h, 0, 0, 0);
-    const key = `${h}:00`;
-    hourMap.set(key, 0);
-  }
-  incidents.forEach((i) => {
-    const d = new Date(i.created_at);
-    const key = `${d.getHours()}:00`;
-    hourMap.set(key, (hourMap.get(key) ?? 0) + 1);
-  });
-
-  // Show last 12 hours with data
-  const allHours = [...hourMap.entries()].map(([label, count]) => {
-    const h = parseInt(label);
-    const d = new Date(now);
-    d.setHours(h, 0, 0, 0);
-    return { label: h === 0 ? '12a' : h < 12 ? `${h}a` : h === 12 ? '12p' : `${h - 12}p`, count, hour: h };
-  });
-  const currentHour = now.getHours();
-  const startHour = Math.max(0, currentHour - 11);
-  const overTime = allHours.filter((d) => d.hour >= startHour && d.hour <= currentHour);
-
-  return { total, todayTotal, open, resolved, byPriority, byType, byLocation, avgResolution, overTime };
+  return { total, todayTotal, open, resolved, byPriority, byType, byLocation, avgResolution };
 }

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { Shield, Loader2, LogIn } from 'lucide-react';
+import { Loader2, LogIn } from 'lucide-react';
 import { CONFERENCE_NAME, CONFERENCE_SUBTITLE } from '@/lib/constants';
 
 export function LoginPage() {
@@ -21,18 +21,13 @@ export function LoginPage() {
     }
   };
 
-  const fillDemo = (em: string) => {
-    setEmail(em);
-    setPassword('password123');
-  };
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-ink-950 px-4 py-8">
       <div className="w-full max-w-sm">
         {/* Brand */}
         <div className="text-center mb-8">
-          <div className="w-14 h-14 rounded-xl bg-brand-600 flex items-center justify-center mx-auto mb-4 shadow-lg">
-            <Shield className="w-7 h-7 text-white" />
+          <div className="w-20 h-20 rounded-2xl overflow-hidden mx-auto mb-4 shadow-lg">
+            <img src="/images_(3).png" alt={CONFERENCE_NAME} className="w-full h-full object-cover" />
           </div>
           <h1 className="text-2xl font-extrabold text-white tracking-tight">{CONFERENCE_NAME}</h1>
           <p className="text-sm text-ink-400 mt-1">{CONFERENCE_SUBTITLE}</p>
@@ -88,28 +83,6 @@ export function LoginPage() {
               )}
             </button>
           </form>
-
-          {/* Demo accounts */}
-          <div className="mt-6 pt-5 border-t border-ink-100">
-            <p className="text-xs font-semibold text-ink-400 uppercase tracking-wide mb-2">
-              Demo Accounts
-            </p>
-            <div className="space-y-1.5">
-              <button
-                onClick={() => fillDemo('admin@horizons2026.ca')}
-                className="w-full text-left text-xs text-ink-600 hover:text-brand-700 hover:bg-brand-50 rounded-lg px-2 py-1.5 transition-colors"
-              >
-                <span className="font-semibold">Admin</span> — admin@horizons2026.ca
-              </button>
-              <button
-                onClick={() => fillDemo('michael@horizons2026.ca')}
-                className="w-full text-left text-xs text-ink-600 hover:text-brand-700 hover:bg-brand-50 rounded-lg px-2 py-1.5 transition-colors"
-              >
-                <span className="font-semibold">Staff</span> — michael@horizons2026.ca
-              </button>
-            </div>
-            <p className="text-xs text-ink-400 mt-2">Password: password123</p>
-          </div>
         </div>
 
         <p className="text-center text-xs text-ink-500 mt-6">

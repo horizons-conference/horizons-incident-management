@@ -8,7 +8,6 @@ import {
   Settings,
   Plus,
   LogOut,
-  Shield,
   X,
 } from 'lucide-react';
 import { useState } from 'react';
@@ -41,8 +40,8 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
       {/* Brand */}
       <div className="px-5 py-5 border-b border-ink-800/60">
         <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-lg bg-brand-600 flex items-center justify-center shrink-0">
-            <Shield className="w-5 h-5 text-white" />
+          <div className="w-9 h-9 rounded-lg overflow-hidden shrink-0">
+            <img src="/images_(3).png" alt={CONFERENCE_NAME} className="w-full h-full object-cover" />
           </div>
           <div>
             <p className="font-extrabold text-sm tracking-tight leading-none text-white">
@@ -135,8 +134,8 @@ export function MobileTopBar({ onMenu }: { onMenu: () => void }) {
   return (
     <div className="lg:hidden sticky top-0 z-30 bg-ink-950 text-white px-4 py-3 flex items-center justify-between">
       <div className="flex items-center gap-2.5">
-        <div className="w-8 h-8 rounded-lg bg-brand-600 flex items-center justify-center">
-          <Shield className="w-4.5 h-4.5 text-white" />
+        <div className="w-8 h-8 rounded-lg overflow-hidden">
+          <img src="/images_(3).png" alt={CONFERENCE_NAME} className="w-full h-full object-cover" />
         </div>
         <div>
           <p className="font-extrabold text-xs tracking-tight leading-none">{CONFERENCE_NAME}</p>
