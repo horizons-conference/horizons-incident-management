@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -13,21 +13,24 @@ import {
   Trash2,
   ShieldAlert,
   Pencil,
+  Hand,
+  MessageSquare,
 } from 'lucide-react';
-import { useIncidentDetail, useUsers, useCategories } from '@/hooks/useIncidents';
+import { useIncidentDetail, useUsers, useCategories, useIncidentMessages } from '@/hooks/useIncidents';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
 import { supabase } from '@/lib/supabase';
 import { PriorityBadge, StatusBadge, TypeBadge } from '@/components/Badges';
 import { ConfirmDialog, Modal } from '@/components/Modal';
 import { PRIORITY_META, STATUS_META, PRIORITIES, STATUSES } from '@/lib/constants';
-import { formatTime, formatDate, resolutionTimeMinutes, formatDuration } from '@/lib/format';
+import { formatTime, formatDate, resolutionTimeMinutes, formatDuration, formatRelative } from '@/lib/format';
 import type { IncidentPriority, IncidentStatus, IncidentType } from '@/lib/types';
 
 export function IncidentDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { incident, history, loading, reload } = useIncidentDetail(id);
+  const { messages, loading: messagesLoading, reload: reloadMessages } = useIncidentMessages(id);
   const { profile } = useAuth();
   const { toast } = useToast();
   const { users } = useUsers();
@@ -41,6 +44,29 @@ export function IncidentDetailPage() {
   const [showEdit, setShowEdit] = useState(false);
   const [showAssign, setShowAssign] = useState(false);
   const [assigneeId, setAssigneeId] = useState('');
+  const [messageText, setMessageText] = useState('');
+  const [sendingMessage, setSendingMessage] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Mark messages as read when viewing (admin only — staff can't update)
+  useEffect(() => {
+    if (!isAdmin || !id || messages.length === 0) return;
+    const unread = messages.filter((m) => !m.read_at && m.sender_id !== profile?.id);
+    if (unread.length === 0) return;
+    (async () => {
+      await supabase
+        .from('incident_messages')
+        .update({ read_at: new Date().toISOString() })
+        .in('id', unread.map((m) => m.id))
+        .is('read_at', null);
+      reloadMessages();
+    })();
+  }, [id, isAdmin, messages, profile?.id, reloadMessages]);
+
+  // Auto-scroll to latest message
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   if (loading) {
     return (
@@ -53,7 +79,7 @@ export function IncidentDetailPage() {
   if (!incident) {
     return (
       <div className="card p-10 text-center">
-        <p className="text-ink-500">Incident not found.</p>
+        <p className="text-ink-500">Incident not found or you don't have access to this incident.</p>
         <Link to="/incidents" className="btn-secondary mt-4 inline-flex">
           Back to incidents
         </Link>
@@ -126,7 +152,7 @@ export function IncidentDetailPage() {
   };
 
   const assignIncident = async () => {
-    if (!profile) return;
+    if (!profile || !isAdmin) return;
     setUpdating(true);
     const newAssignee = assigneeId || null;
     const { error } = await supabase
@@ -142,6 +168,45 @@ export function IncidentDetailPage() {
     setShowAssign(false);
     toast('Incident assigned', 'success');
     reload();
+  };
+
+  const claimIncident = async () => {
+    if (!profile || !isAdmin) return;
+    setUpdating(true);
+    const { error } = await supabase
+      .from('incidents')
+      .update({
+        claimed_by: profile.id,
+        claimed_at: new Date().toISOString(),
+        assigned_to: incident.assigned_to ?? profile.id,
+      })
+      .eq('id', incident.id);
+    if (error) {
+      toast('Failed to claim incident', 'error');
+      setUpdating(false);
+      return;
+    }
+    setUpdating(false);
+    toast('Incident claimed', 'success');
+    reload();
+  };
+
+  const sendMessage = async () => {
+    if (!messageText.trim() || !profile) return;
+    setSendingMessage(true);
+    const { error } = await supabase.from('incident_messages').insert({
+      incident_id: incident.id,
+      sender_id: profile.id,
+      body: messageText.trim(),
+    });
+    if (error) {
+      toast('Failed to send message', 'error');
+      setSendingMessage(false);
+      return;
+    }
+    setMessageText('');
+    setSendingMessage(false);
+    reloadMessages();
   };
 
   const acknowledge = async () => {
@@ -231,6 +296,18 @@ export function IncidentDetailPage() {
             <MetaItem icon={<UserCheck className="w-4 h-4" />} label="Assigned to" value={incident.assignee?.name ?? 'Unassigned'} sub={incident.assignee?.department ?? undefined} />
           </div>
 
+          {incident.claimed_by && (
+            <div className="mt-4 pt-4 border-t border-ink-100">
+              <div className="inline-flex items-center gap-2 text-sm bg-brand-50 text-brand-700 border border-brand-200 rounded-full px-3 py-1.5">
+                <Hand className="w-4 h-4" />
+                <span className="font-semibold">Managed by {incident.claimer?.name ?? 'Unknown'}</span>
+                {incident.claimed_at && (
+                  <span className="text-brand-500 text-xs">· since {formatDate(incident.claimed_at)}</span>
+                )}
+              </div>
+            </div>
+          )}
+
           {resTime !== null && (
             <div className="mt-4 pt-4 border-t border-ink-100">
               <div className="flex items-center gap-2 text-sm">
@@ -250,10 +327,18 @@ export function IncidentDetailPage() {
                 Acknowledge
               </button>
             )}
-            <button className="btn-secondary" onClick={() => setShowAssign(true)}>
-              <UserCheck className="w-4 h-4" />
-              {incident.assigned_to ? 'Reassign' : 'Assign'}
-            </button>
+            {isAdmin && !incident.claimed_by && (
+              <button className="btn-primary" onClick={claimIncident} disabled={updating}>
+                <Hand className="w-4 h-4" />
+                Claim Incident
+              </button>
+            )}
+            {isAdmin && (
+              <button className="btn-secondary" onClick={() => setShowAssign(true)}>
+                <UserCheck className="w-4 h-4" />
+                {incident.assigned_to ? 'Reassign' : 'Assign'}
+              </button>
+            )}
             {isAdmin && (
               <button className="btn-ghost" onClick={() => setShowEdit(true)}>
                 <Pencil className="w-4 h-4" />
@@ -267,6 +352,72 @@ export function IncidentDetailPage() {
               </button>
             )}
           </div>
+        </div>
+      </div>
+
+      <div className="card p-5">
+        <h2 className="text-sm font-bold text-ink-500 uppercase tracking-wide mb-4 flex items-center gap-2">
+          <MessageSquare className="w-4 h-4" />
+          Conversation
+        </h2>
+        <div className="space-y-3 mb-4 max-h-80 overflow-y-auto pr-1">
+          {messagesLoading ? (
+            <div className="flex justify-center py-4">
+              <Loader2 className="w-5 h-5 animate-spin text-ink-400" />
+            </div>
+          ) : messages.length === 0 ? (
+            <p className="text-sm text-ink-400 text-center py-4">No messages yet. Start the conversation below.</p>
+          ) : (
+            messages.map((m) => {
+              const isOwn = m.sender_id === profile?.id;
+              const senderName = m.sender?.name ?? 'Unknown';
+              const unread = !m.read_at && !isOwn;
+              return (
+                <div key={m.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`max-w-[75%] ${isOwn ? 'items-end' : 'items-start'} flex flex-col gap-1`}>
+                    <div className="flex items-center gap-1.5 text-xs text-ink-400">
+                      {!isOwn && <span className="font-semibold text-ink-600">{senderName}</span>}
+                      {unread && <span className="w-2 h-2 rounded-full bg-brand-500 animate-pulse" />}
+                    </div>
+                    <div
+                      className={`rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
+                        isOwn
+                          ? 'bg-brand-600 text-white rounded-br-sm'
+                          : 'bg-ink-100 text-ink-800 rounded-bl-sm'
+                      }`}
+                    >
+                      {m.body}
+                    </div>
+                    <span className="text-xs text-ink-400 px-1">{formatTime(m.created_at)}</span>
+                  </div>
+                </div>
+              );
+            })
+          )}
+          <div ref={messagesEndRef} />
+        </div>
+        <div className="border-t border-ink-100 pt-3">
+          <div className="flex gap-2">
+            <textarea
+              value={messageText}
+              onChange={(e) => setMessageText(e.target.value)}
+              placeholder="Type a message..."
+              rows={2}
+              className="input resize-none flex-1"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  sendMessage();
+                }
+              }}
+            />
+            <button onClick={sendMessage} disabled={sendingMessage || !messageText.trim()} className="btn-primary self-stretch px-4">
+              {sendingMessage ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+            </button>
+          </div>
+          <p className="text-xs text-ink-400 mt-1.5">
+            {isAdmin ? 'Reply to the reporting staff member.' : 'Messages are sent to the Secretariat team.'}
+          </p>
         </div>
       </div>
 
@@ -383,7 +534,7 @@ export function IncidentDetailPage() {
       <Modal
         open={showAssign}
         onClose={() => setShowAssign(false)}
-        title="Assign Incident"
+        title="Assign / Transfer Incident"
         size="sm"
         footer={
           <>
@@ -394,10 +545,10 @@ export function IncidentDetailPage() {
           </>
         }
       >
-        <label className="label">Assign to</label>
+        <label className="label">Assign to Secretariat member</label>
         <select value={assigneeId} onChange={(e) => setAssigneeId(e.target.value)} className="input">
           <option value="">Unassigned</option>
-          {users.map((u) => (
+          {users.filter((u) => u.role === 'admin').map((u) => (
             <option key={u.id} value={u.id}>
               {u.name} {u.department ? `— ${u.department}` : ''}
             </option>

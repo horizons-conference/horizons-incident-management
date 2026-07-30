@@ -26,7 +26,7 @@ const NAV: NavItem[] = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/incidents', label: 'Incidents', icon: ListChecks },
   { to: '/my-incidents', label: 'My Incidents', icon: UserCheck },
-  { to: '/analytics', label: 'Analytics', icon: BarChart3, adminOnly: true },
+  { to: '/analytics', label: 'Analytics', icon: BarChart3 },
   { to: '/users', label: 'Users', icon: Users, adminOnly: true },
   { to: '/settings', label: 'Settings', icon: Settings, adminOnly: true },
 ];

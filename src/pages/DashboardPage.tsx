@@ -18,21 +18,27 @@ export function DashboardPage({ onReport }: { onReport: () => void }) {
   const { toast } = useToast();
   const [dismissed, setDismissed] = useState<string[]>([]);
 
+  const isAdmin = profile?.role === 'admin';
+  const visibleIncidents = useMemo(
+    () => (isAdmin ? incidents : incidents.filter((i) => i.reporter_id === profile?.id)),
+    [incidents, isAdmin, profile],
+  );
+
   const unackedCritical = useMemo(
     () =>
-      incidents.filter(
+      visibleIncidents.filter(
         (i) =>
           i.priority === 'critical' &&
           !i.acknowledged &&
           i.status !== 'resolved' &&
           !dismissed.includes(i.id),
       ),
-    [incidents, dismissed],
+    [visibleIncidents, dismissed],
   );
 
   const recentActive = useMemo(
     () =>
-      [...incidents]
+      [...visibleIncidents]
         .filter((i) => i.status !== 'resolved')
         .sort((a, b) => {
           const pr = PRIORITY_META[a.priority].rank - PRIORITY_META[b.priority].rank;
@@ -40,7 +46,7 @@ export function DashboardPage({ onReport }: { onReport: () => void }) {
           return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
         })
         .slice(0, 8),
-    [incidents],
+    [visibleIncidents],
   );
 
   // Audit history is now recorded automatically by database triggers.
@@ -84,7 +90,7 @@ export function DashboardPage({ onReport }: { onReport: () => void }) {
         />
       )}
 
-      <SummaryCards incidents={incidents} />
+      <SummaryCards incidents={visibleIncidents} />
 
       <div>
         <div className="flex items-center justify-between mb-3">

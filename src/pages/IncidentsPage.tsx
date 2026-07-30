@@ -10,13 +10,12 @@ import type { Incident } from '@/lib/types';
 
 type View = 'all' | 'active' | 'critical' | 'mine' | 'resolved';
 
-const VIEW_TABS: { key: View; label: string }[] = [
-  { key: 'all', label: 'All' },
-  { key: 'active', label: 'Active' },
-  { key: 'critical', label: 'Critical' },
-  { key: 'mine', label: 'My Incidents' },
-  { key: 'resolved', label: 'Resolved' },
-];
+function buildViewTabs(isAdmin: boolean): { key: View; label: string }[] {
+  const tabs: { key: View; label: string }[] = [{ key: 'all', label: 'All' }, { key: 'active', label: 'Active' }, { key: 'critical', label: 'Critical' }];
+  if (isAdmin) tabs.push({ key: 'mine', label: 'Assigned to Me' });
+  tabs.push({ key: 'resolved', label: 'Resolved' });
+  return tabs;
+}
 
 export function IncidentsPage({
   initialView = 'all',
@@ -28,11 +27,16 @@ export function IncidentsPage({
   const { incidents, loading } = useIncidents();
   const { users } = useUsers();
   const { profile } = useAuth();
+  const isAdmin = profile?.role === 'admin';
   const [view, setView] = useState<View>(initialView);
   const [filters, setFilters] = useState<FilterState>(defaultFilters);
 
+  const viewTabs = buildViewTabs(isAdmin);
+
   const filtered = useMemo(() => {
-    let list = [...incidents];
+    // Staff are restricted to their own incidents at the data level (RLS),
+    // but we also enforce it here as defense-in-depth.
+    let list = isAdmin ? [...incidents] : incidents.filter((i) => i.reporter_id === profile?.id);
 
     // View filter
     if (view === 'active') list = list.filter((i) => i.status !== 'resolved');
@@ -95,7 +99,7 @@ export function IncidentsPage({
     }
 
     return list;
-  }, [incidents, view, filters, profile]);
+  }, [incidents, view, filters, profile, isAdmin]);
 
   return (
     <div className="space-y-5">
@@ -111,7 +115,7 @@ export function IncidentsPage({
 
       {/* View tabs */}
       <div className="flex gap-1.5 overflow-x-auto no-scrollbar -mx-1 px-1">
-        {VIEW_TABS.map((tab) => (
+        {viewTabs.map((tab) => (
           <button
             key={tab.key}
             onClick={() => setView(tab.key)}
@@ -126,7 +130,7 @@ export function IncidentsPage({
         ))}
       </div>
 
-      <FilterBar filters={filters} setFilters={setFilters} users={users} />
+      <FilterBar filters={filters} setFilters={setFilters} users={isAdmin ? users : []} />
 
       {loading ? (
         <div className="grid gap-3 sm:grid-cols-2">

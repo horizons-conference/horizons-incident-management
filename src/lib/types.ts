@@ -43,11 +43,14 @@ export interface Incident {
   updated_at: string;
   resolved_at: string | null;
   resolved_by: string | null;
+  claimed_by: string | null;
+  claimed_at: string | null;
   // joined fields
   reporter?: Profile | null;
   assignee?: Profile | null;
   acknowledger?: Profile | null;
   resolver?: Profile | null;
+  claimer?: Profile | null;
   // lightweight notes joined for list view (search + CSV export)
   incident_notes?: { id: string; note: string }[];
 }
@@ -84,4 +87,14 @@ export interface IncidentCategory {
   active: boolean;
   sort_order: number;
   created_at: string;
+}
+
+export interface IncidentMessage {
+  id: string;
+  incident_id: string;
+  sender_id: string;
+  body: string;
+  read_at: string | null;
+  created_at: string;
+  sender?: Profile | null;
 }

@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useIncidents } from '@/hooks/useIncidents';
 import { useAuth } from '@/context/AuthContext';
-import { Navigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { BarChart3, Download, Clock, TrendingUp, MapPin, AlertOctagon } from 'lucide-react';
 import { INCIDENT_TYPES, PRIORITIES, TYPE_META, PRIORITY_META } from '@/lib/constants';
 import { isToday, formatDuration, resolutionTimeMinutes, toCsv } from '@/lib/format';
@@ -13,9 +13,13 @@ export function AnalyticsPage() {
   const { profile } = useAuth();
   const { toast } = useToast();
 
-  if (profile && profile.role !== 'admin') return <Navigate to="/" replace />;
+  const isAdmin = profile?.role === 'admin';
+  const visibleIncidents = useMemo(
+    () => (isAdmin ? incidents : incidents.filter((i) => i.reporter_id === profile?.id)),
+    [incidents, isAdmin, profile],
+  );
 
-  const stats = useMemo(() => computeAnalytics(incidents), [incidents]);
+  const stats = useMemo(() => computeAnalytics(visibleIncidents), [visibleIncidents]);
 
   const exportCsv = () => {
     const rows: (string | number | null)[][] = [
@@ -36,7 +40,7 @@ export function AnalyticsPage() {
         'Created At',
         'Updated At',
       ],
-      ...incidents.map((i) => [
+      ...visibleIncidents.map((i) => [
         i.incident_number ?? '',
         new Date(i.created_at).toLocaleDateString(),
         new Date(i.created_at).toLocaleTimeString(),
