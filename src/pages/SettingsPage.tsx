@@ -17,7 +17,6 @@ export function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     name: profile?.name ?? '',
-    department: profile?.department ?? '',
     title: profile?.title ?? '',
   });
 
@@ -32,7 +31,6 @@ export function SettingsPage() {
       .from('profiles')
       .update({
         name: form.name.trim(),
-        department: form.department.trim() || null,
         title: form.title.trim() || null,
       })
       .eq('id', profile.id);
@@ -113,25 +111,14 @@ export function SettingsPage() {
               className="input"
             />
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="label">Department</label>
-              <input
-                type="text"
-                value={form.department}
-                onChange={(e) => update({ department: e.target.value })}
-                className="input"
-              />
-            </div>
-            <div>
-              <label className="label">Title</label>
-              <input
-                type="text"
-                value={form.title}
-                onChange={(e) => update({ title: e.target.value })}
-                className="input"
-              />
-            </div>
+          <div>
+            <label className="label">Title</label>
+            <input
+              type="text"
+              value={form.title}
+              onChange={(e) => update({ title: e.target.value })}
+              className="input"
+            />
           </div>
           <button className="btn-primary" onClick={save} disabled={saving}>
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}

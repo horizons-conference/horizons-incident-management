@@ -5,6 +5,7 @@ import type { Profile } from '@/lib/types';
 interface AuthContextValue {
   profile: Profile | null;
   loading: boolean;
+  deactivatedMessage: string | null;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -15,6 +16,7 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [deactivatedMessage, setDeactivatedMessage] = useState<string | null>(null);
 
   const loadProfile = useCallback(async () => {
     const {
@@ -30,7 +32,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .select('*')
       .eq('id', user.id)
       .maybeSingle();
-    setProfile(data as Profile | null);
+    const fetched = data as Profile | null;
+    if (fetched && !fetched.active) {
+      setDeactivatedMessage('Your account has been deactivated. Contact an administrator.');
+      await supabase.auth.signOut();
+      setProfile(null);
+      setLoading(false);
+      return;
+    }
+    setProfile(fetched);
+    setDeactivatedMessage(null);
     setLoading(false);
   }, []);
 
@@ -53,6 +64,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => sub.subscription.unsubscribe();
   }, [loadProfile]);
 
+  // Realtime: sign out immediately if an admin deactivates this user mid-session
+  useEffect(() => {
+    if (!profile?.id) return;
+    const userId = profile.id;
+    const channel = supabase
+      .channel(`profile-${userId}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${userId}` },
+        (payload) => {
+          const updated = payload.new as Profile;
+          if (updated && !updated.active) {
+            setDeactivatedMessage('Your account has been deactivated. Contact an administrator.');
+            supabase.auth.signOut();
+            setProfile(null);
+          }
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [profile?.id]);
+
   const signIn = useCallback(async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) return { error: error.message };
@@ -69,7 +105,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ profile, loading, signIn, signOut, refreshProfile }}>
+    <AuthContext.Provider value={{ profile, loading, deactivatedMessage, signIn, signOut, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );

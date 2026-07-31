@@ -24,7 +24,6 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Verify the caller's session using the anon key
     const callerClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
@@ -37,7 +36,6 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Check the caller's role in profiles
     const { data: callerProfile, error: profileError } = await callerClient
       .from("profiles")
       .select("role")
@@ -51,43 +49,61 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Parse the request body
     const body = await req.json();
-    const { email, password, name, title } = body;
+    const { action, id } = body;
 
-    if (!email || !password || !name) {
-      return new Response(JSON.stringify({ error: "Email, password, and name are required" }), {
+    if (!id) {
+      return new Response(JSON.stringify({ error: "id is required" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Use the service role key to create the user (bypasses RLS)
-    const adminClient = createClient(supabaseUrl, supabaseServiceRoleKey);
+    if (id === callerData.user.id) {
+      return new Response(JSON.stringify({ error: "Cannot modify your own account" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
-    const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
-      email: String(email).trim(),
-      password: String(password),
-      email_confirm: true,
-      user_metadata: {
-        name: String(name).trim(),
-        title: title ? String(title).trim() : null,
-      },
+    const admin = createClient(supabaseUrl, supabaseServiceRoleKey);
+
+    if (action === "update") {
+      const { active, role } = body;
+      const patch: Record<string, unknown> = {};
+
+      if (typeof active === "boolean") {
+        patch.active = active;
+        const { error: banErr } = await admin.auth.admin.updateUserById(id, {
+          ban_duration: active ? "none" : "876000h",
+        });
+        if (banErr) throw new Error(banErr.message);
+      }
+
+      if (role === "admin" || role === "staff") {
+        patch.role = role;
+      }
+
+      if (Object.keys(patch).length === 0) {
+        return new Response(JSON.stringify({ error: "No fields to update" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { error: updateErr } = await admin.from("profiles").update(patch).eq("id", id);
+      if (updateErr) throw new Error(updateErr.message);
+
+      return new Response(JSON.stringify({ success: true }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    return new Response(JSON.stringify({ error: "Unknown action" }), {
+      status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-
-    if (createError || !newUser.user) {
-      return new Response(JSON.stringify({ error: createError?.message ?? "Failed to create user" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // The handle_new_user trigger creates the profile with role='staff'.
-
-    return new Response(
-      JSON.stringify({ success: true, user_id: newUser.user.id }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
   } catch (err) {
     return new Response(
       JSON.stringify({ error: err instanceof Error ? err.message : "Internal server error" }),

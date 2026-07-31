@@ -19,7 +19,6 @@ export interface Profile {
   name: string;
   email: string;
   role: UserRole;
-  department: string | null;
   title: string | null;
   active: boolean;
   created_at: string;

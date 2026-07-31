@@ -4,7 +4,7 @@ import { Loader2, LogIn } from 'lucide-react';
 import { CONFERENCE_NAME, CONFERENCE_SUBTITLE } from '@/lib/constants';
 
 export function LoginPage() {
-  const { signIn } = useAuth();
+  const { signIn, deactivatedMessage } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -45,7 +45,7 @@ export function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="input"
-                placeholder="name@horizons2026.ca"
+                placeholder="Enter email"
                 autoComplete="email"
                 required
               />
@@ -66,9 +66,9 @@ export function LoginPage() {
               />
             </div>
 
-            {error && (
+            {(error || deactivatedMessage) && (
               <div className="text-sm text-critical-700 bg-critical-50 border border-critical-200 rounded-lg px-3 py-2">
-                {error}
+                {error ?? deactivatedMessage}
               </div>
             )}
 

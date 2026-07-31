@@ -19,23 +19,65 @@ export function UsersPage() {
   if (profile && profile.role !== 'admin') return <Navigate to="/" replace />;
 
   const updateRole = async (userId: string, role: UserRole) => {
-    const { error } = await supabase.from('profiles').update({ role }).eq('id', userId);
-    if (error) {
-      toast('Failed to update role', 'error');
-      return;
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      const accessToken = session.session?.access_token;
+      if (!accessToken) {
+        toast('Not authenticated', 'error');
+        return;
+      }
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-user-mgmt`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${accessToken}`,
+            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+          },
+          body: JSON.stringify({ action: 'update', id: userId, role }),
+        },
+      );
+      const result = await response.json();
+      if (!response.ok || result.error) {
+        throw new Error(result.error ?? `Request failed (${response.status})`);
+      }
+      toast('User role updated', 'success');
+      reload();
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Failed to update role', 'error');
     }
-    toast('User role updated', 'success');
-    reload();
   };
 
   const toggleActive = async (userId: string, active: boolean) => {
-    const { error } = await supabase.from('profiles').update({ active: !active }).eq('id', userId);
-    if (error) {
-      toast('Failed to update user', 'error');
-      return;
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      const accessToken = session.session?.access_token;
+      if (!accessToken) {
+        toast('Not authenticated', 'error');
+        return;
+      }
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-user-mgmt`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${accessToken}`,
+            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+          },
+          body: JSON.stringify({ action: 'update', id: userId, active: !active }),
+        },
+      );
+      const result = await response.json();
+      if (!response.ok || result.error) {
+        throw new Error(result.error ?? `Request failed (${response.status})`);
+      }
+      toast(`User ${!active ? 'activated' : 'deactivated'}`, 'success');
+      reload();
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Failed to update user', 'error');
     }
-    toast(`User ${!active ? 'activated' : 'deactivated'}`, 'success');
-    reload();
   };
 
   const handleDelete = async () => {
@@ -123,7 +165,6 @@ export function UsersPage() {
                 </div>
                 <p className="text-xs text-ink-500 truncate">
                   {u.email}
-                  {u.department ? ` · ${u.department}` : ''}
                   {u.title ? ` · ${u.title}` : ''}
                 </p>
               </div>
@@ -189,7 +230,6 @@ function AddUserModal({
     name: '',
     email: '',
     password: '',
-    department: '',
     title: '',
   });
 
@@ -227,7 +267,6 @@ function AddUserModal({
             email: form.email.trim(),
             password: form.password,
             name: form.name.trim(),
-            department: form.department.trim() || null,
             title: form.title.trim() || null,
           }),
         },
@@ -239,7 +278,7 @@ function AddUserModal({
       }
 
       toast('User created successfully', 'success');
-      setForm({ name: '', email: '', password: '', department: '', title: '' });
+      setForm({ name: '', email: '', password: '', title: '' });
       onAdded();
       onClose();
     } catch (err) {
@@ -285,7 +324,7 @@ function AddUserModal({
             value={form.email}
             onChange={(e) => update({ email: e.target.value })}
             className="input"
-            placeholder="name@horizons2026.ca"
+            placeholder="Enter email"
           />
         </div>
         <div>
@@ -298,27 +337,15 @@ function AddUserModal({
             placeholder="Min 6 characters"
           />
         </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="label">Department</label>
-            <input
-              type="text"
-              value={form.department}
-              onChange={(e) => update({ department: e.target.value })}
-              className="input"
-              placeholder="e.g. Logistics"
-            />
-          </div>
-          <div>
-            <label className="label">Title</label>
-            <input
-              type="text"
-              value={form.title}
-              onChange={(e) => update({ title: e.target.value })}
-              className="input"
-              placeholder="e.g. Under-Secretary"
-            />
-          </div>
+        <div>
+          <label className="label">Title</label>
+          <input
+            type="text"
+            value={form.title}
+            onChange={(e) => update({ title: e.target.value })}
+            className="input"
+            placeholder="e.g. Under-Secretary"
+          />
         </div>
       </div>
     </Modal>

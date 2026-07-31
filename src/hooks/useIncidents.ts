@@ -20,7 +20,7 @@ export function useIncidentMessages(incidentId: string | undefined) {
     const { data } = await supabase
       .from('incident_messages')
       .select(
-        'id, incident_id, sender_id, body, read_at, created_at, sender:profiles!incident_messages_sender_id_fkey(id, name, email, role, department, title)',
+        'id, incident_id, sender_id, body, read_at, created_at, sender:profiles!incident_messages_sender_id_fkey(id, name, email, role, title)',
       )
       .eq('incident_id', incidentId)
       .order('created_at', { ascending: true });
@@ -128,7 +128,7 @@ export function useIncidents() {
     const { data } = await supabase
       .from('incidents')
       .select(
-        'id, incident_number, type, priority, title, location, description, reporter_id, assigned_to, status, acknowledged, acknowledged_by, acknowledged_at, created_at, updated_at, resolved_at, resolved_by, claimed_by, claimed_at, reporter:profiles!incidents_reporter_id_fkey(id, name, email, role, department, title), assignee:profiles!incidents_assigned_to_fkey(id, name, email, role, department, title), acknowledger:profiles!incidents_acknowledged_by_fkey(id, name), resolver:profiles!incidents_resolved_by_fkey(id, name), claimer:profiles!incidents_claimed_by_fkey(id, name, email, role, department, title), incident_notes(id, note)',
+        'id, incident_number, type, priority, title, location, description, reporter_id, assigned_to, status, acknowledged, acknowledged_by, acknowledged_at, created_at, updated_at, resolved_at, resolved_by, claimed_by, claimed_at, reporter:profiles!incidents_reporter_id_fkey(id, name, email, role, title), assignee:profiles!incidents_assigned_to_fkey(id, name, email, role, title), acknowledger:profiles!incidents_acknowledged_by_fkey(id, name), resolver:profiles!incidents_resolved_by_fkey(id, name), claimer:profiles!incidents_claimed_by_fkey(id, name, email, role, title), incident_notes(id, note)',
       )
       .order('created_at', { ascending: false });
     setIncidents((data ?? []) as unknown as Incident[]);
@@ -173,7 +173,7 @@ export function useIncidentDetail(id: string | undefined) {
     const { data } = await supabase
       .from('incidents')
       .select(
-        'id, incident_number, type, priority, title, location, description, reporter_id, assigned_to, status, acknowledged, acknowledged_by, acknowledged_at, created_at, updated_at, resolved_at, resolved_by, claimed_by, claimed_at, reporter:profiles!incidents_reporter_id_fkey(id, name, email, role, department, title), assignee:profiles!incidents_assigned_to_fkey(id, name, email, role, department, title), acknowledger:profiles!incidents_acknowledged_by_fkey(id, name), resolver:profiles!incidents_resolved_by_fkey(id, name), claimer:profiles!incidents_claimed_by_fkey(id, name, email, role, department, title), incident_notes(id, incident_id, author_id, note, created_at, author:profiles!incident_notes_author_id_fkey(id, name))',
+        'id, incident_number, type, priority, title, location, description, reporter_id, assigned_to, status, acknowledged, acknowledged_by, acknowledged_at, created_at, updated_at, resolved_at, resolved_by, claimed_by, claimed_at, reporter:profiles!incidents_reporter_id_fkey(id, name, email, role, title), assignee:profiles!incidents_assigned_to_fkey(id, name, email, role, title), acknowledger:profiles!incidents_acknowledged_by_fkey(id, name), resolver:profiles!incidents_resolved_by_fkey(id, name), claimer:profiles!incidents_claimed_by_fkey(id, name, email, role, title), incident_notes(id, incident_id, author_id, note, created_at, author:profiles!incident_notes_author_id_fkey(id, name))',
       )
       .eq('id', id)
       .maybeSingle();

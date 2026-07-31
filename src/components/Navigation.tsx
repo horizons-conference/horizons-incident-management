@@ -88,7 +88,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
             <p className="text-sm font-semibold text-white truncate">{profile?.name}</p>
             <p className="text-xs text-ink-400 capitalize">
               {profile?.role}
-              {profile?.department ? ` · ${profile.department}` : ''}
+              {profile?.title ? ` · ${profile.title}` : ''}
             </p>
           </div>
           <button

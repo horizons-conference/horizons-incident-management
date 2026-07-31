@@ -292,8 +292,8 @@ export function IncidentDetailPage() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 border-t border-ink-100">
             <MetaItem icon={<Clock className="w-4 h-4" />} label="Time" value={formatTime(incident.created_at)} sub={formatDate(incident.created_at)} />
             <MetaItem icon={<MapPin className="w-4 h-4" />} label="Location" value={incident.location} />
-            <MetaItem icon={<User className="w-4 h-4" />} label="Reported by" value={incident.reporter?.name ?? 'Unknown'} sub={incident.reporter?.department ?? undefined} />
-            <MetaItem icon={<UserCheck className="w-4 h-4" />} label="Assigned to" value={incident.assignee?.name ?? 'Unassigned'} sub={incident.assignee?.department ?? undefined} />
+            <MetaItem icon={<User className="w-4 h-4" />} label="Reported by" value={incident.reporter?.name ?? 'Unknown'} sub={incident.reporter?.title ?? undefined} />
+            <MetaItem icon={<UserCheck className="w-4 h-4" />} label="Assigned to" value={incident.assignee?.name ?? 'Unassigned'} sub={incident.assignee?.title ?? undefined} />
           </div>
 
           {incident.claimed_by && (
@@ -550,7 +550,7 @@ export function IncidentDetailPage() {
           <option value="">Unassigned</option>
           {users.filter((u) => u.role === 'admin').map((u) => (
             <option key={u.id} value={u.id}>
-              {u.name} {u.department ? `— ${u.department}` : ''}
+              {u.name} {u.title ? `— ${u.title}` : ''}
             </option>
           ))}
         </select>
