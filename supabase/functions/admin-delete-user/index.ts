@@ -24,7 +24,6 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Verify the caller's session using the anon key
     const callerClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
@@ -37,7 +36,6 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Check the caller's role in profiles
     const { data: callerProfile, error: profileError } = await callerClient
       .from("profiles")
       .select("role")
@@ -51,7 +49,6 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Parse the request body
     const body = await req.json();
     const { user_id } = body;
 
@@ -62,7 +59,6 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Prevent self-deletion
     if (user_id === callerData.user.id) {
       return new Response(JSON.stringify({ error: "Cannot remove your own account" }), {
         status: 400,
@@ -70,17 +66,22 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Use the service role key to delete the user (cascades to profile)
-    const adminClient = createClient(supabaseUrl, supabaseServiceRoleKey);
+    const admin = createClient(supabaseUrl, supabaseServiceRoleKey);
 
-    const { error: deleteError } = await adminClient.auth.admin.deleteUser(user_id);
+    // Delete the auth user. FK cascades (ON DELETE SET NULL / CASCADE) handle
+    // all public-table references automatically now that reporter_id is nullable.
+    const { error: deleteError } = await admin.auth.admin.deleteUser(user_id);
 
     if (deleteError) {
-      return new Response(JSON.stringify({ error: deleteError.message }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: deleteError.message }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
+
+    // Safety net: remove the profile row if the handle_new_user trigger's
+    // FK cascade didn't fire (e.g. if the profile was orphaned).
+    await admin.from("profiles").delete().eq("id", user_id);
 
     return new Response(
       JSON.stringify({ success: true }),
