@@ -3,7 +3,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
 import { supabase } from '@/lib/supabase';
 import { useState } from 'react';
-import { Loader2, Settings as SettingsIcon, Download, Tag, Plus, Trash2, GripVertical } from 'lucide-react';
+import { Loader2, Settings as SettingsIcon, Download, Tag, Plus, Trash2, GripVertical, Lock } from 'lucide-react';
 import { useIncidents, useCategories } from '@/hooks/useIncidents';
 import { TYPE_META, PRIORITY_META } from '@/lib/constants';
 import { formatDuration, resolutionTimeMinutes, toCsv } from '@/lib/format';
@@ -126,6 +126,9 @@ export function SettingsPage() {
           </button>
         </div>
       </div>
+
+      {/* Change Password */}
+      <ChangePasswordCard />
 
       {/* Incident Categories */}
       <CategoriesManager categories={categories} reload={reloadCategories} />
@@ -323,6 +326,76 @@ function CategoriesManager({
             </button>
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+function ChangePasswordCard() {
+  const { toast } = useToast();
+  const [form, setForm] = useState({ next: '', confirm: '' });
+  const [saving, setSaving] = useState(false);
+
+  const update = (patch: Partial<typeof form>) => setForm({ ...form, ...patch });
+
+  const submit = async () => {
+    if (!form.next || !form.confirm) {
+      toast('All fields are required', 'error');
+      return;
+    }
+    if (form.next.length < 6) {
+      toast('New password must be at least 6 characters', 'error');
+      return;
+    }
+    if (form.next !== form.confirm) {
+      toast('New passwords do not match', 'error');
+      return;
+    }
+    setSaving(true);
+    const { error } = await supabase.auth.updateUser({ password: form.next });
+    if (error) {
+      toast(error.message, 'error');
+      setSaving(false);
+      return;
+    }
+    toast('Password updated', 'success');
+    setForm({ next: '', confirm: '' });
+    setSaving(false);
+  };
+
+  return (
+    <div className="card p-5">
+      <h2 className="text-sm font-bold text-ink-500 uppercase tracking-wide mb-4 flex items-center gap-2">
+        <Lock className="w-4 h-4" />
+        Change Password
+      </h2>
+      <div className="space-y-3">
+        <div>
+          <label className="label">New Password</label>
+          <input
+            type="password"
+            value={form.next}
+            onChange={(e) => update({ next: e.target.value })}
+            className="input"
+            placeholder="Min 6 characters"
+            autoComplete="new-password"
+          />
+        </div>
+        <div>
+          <label className="label">Confirm New Password</label>
+          <input
+            type="password"
+            value={form.confirm}
+            onChange={(e) => update({ confirm: e.target.value })}
+            className="input"
+            placeholder="Re-enter new password"
+            autoComplete="new-password"
+          />
+        </div>
+        <button className="btn-primary" onClick={submit} disabled={saving}>
+          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+          Update Password
+        </button>
       </div>
     </div>
   );
