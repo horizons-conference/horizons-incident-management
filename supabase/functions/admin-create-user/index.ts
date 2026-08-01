@@ -24,7 +24,6 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Verify the caller's session using the anon key
     const callerClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
@@ -37,7 +36,6 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Check the caller's role in profiles
     const { data: callerProfile, error: profileError } = await callerClient
       .from("profiles")
       .select("role")
@@ -51,27 +49,52 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Parse the request body
     const body = await req.json();
-    const { email, password, name, title } = body;
+    const { username, password, name, title, role } = body;
 
-    if (!email || !password || !name) {
-      return new Response(JSON.stringify({ error: "Email, password, and name are required" }), {
+    if (!username || !password || !name) {
+      return new Response(JSON.stringify({ error: "Username, password, and name are required" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Use the service role key to create the user (bypasses RLS)
-    const adminClient = createClient(supabaseUrl, supabaseServiceRoleKey);
+    if (password.length < 6) {
+      return new Response(JSON.stringify({ error: "Password must be at least 6 characters" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
-    const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
-      email: String(email).trim(),
+    const normalizedUsername = String(username).trim().toLowerCase();
+    const syntheticEmail = `${normalizedUsername}@app.local`;
+
+    // Check username uniqueness against profiles
+    const admin = createClient(supabaseUrl, supabaseServiceRoleKey);
+    const { data: existing } = await admin
+      .from("profiles")
+      .select("id")
+      .eq("username", normalizedUsername)
+      .maybeSingle();
+
+    if (existing) {
+      return new Response(JSON.stringify({ error: "Username already taken" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const userRole = role === "admin" ? "admin" : "staff";
+
+    const { data: newUser, error: createError } = await admin.auth.admin.createUser({
+      email: syntheticEmail,
       password: String(password),
       email_confirm: true,
       user_metadata: {
         name: String(name).trim(),
         title: title ? String(title).trim() : null,
+        username: normalizedUsername,
+        role: userRole,
       },
     });
 
@@ -82,7 +105,12 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // The handle_new_user trigger creates the profile with role='staff'.
+    // handle_new_user trigger creates the profile with the role from metadata.
+    // Ensure the role is set correctly (trigger reads raw_user_meta_data->>'role').
+    await admin
+      .from("profiles")
+      .update({ role: userRole })
+      .eq("id", newUser.user.id);
 
     return new Response(
       JSON.stringify({ success: true, user_id: newUser.user.id }),

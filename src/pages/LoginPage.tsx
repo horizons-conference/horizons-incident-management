@@ -5,7 +5,7 @@ import { CONFERENCE_NAME, CONFERENCE_SUBTITLE } from '@/lib/constants';
 
 export function LoginPage() {
   const { signIn, deactivatedMessage } = useAuth();
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -14,7 +14,7 @@ export function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    const { error } = await signIn(email.trim(), password);
+    const { error } = await signIn(username.trim(), password);
     if (error) {
       setError(error);
       setLoading(false);
@@ -36,17 +36,17 @@ export function LoginPage() {
         <div className="card p-6">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="label" htmlFor="email">
-                Email
+              <label className="label" htmlFor="username">
+                Username
               </label>
               <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                id="username"
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 className="input"
-                placeholder="Enter email"
-                autoComplete="email"
+                placeholder="Enter username"
+                autoComplete="username"
                 required
               />
             </div>

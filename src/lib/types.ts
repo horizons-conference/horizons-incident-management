@@ -17,7 +17,8 @@ export type IncidentType =
 export interface Profile {
   id: string;
   name: string;
-  email: string;
+  username: string;
+  email: string | null;
   role: UserRole;
   title: string | null;
   active: boolean;

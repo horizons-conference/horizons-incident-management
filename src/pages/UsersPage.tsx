@@ -164,7 +164,7 @@ export function UsersPage() {
                   )}
                 </div>
                 <p className="text-xs text-ink-500 truncate">
-                  {u.email}
+                  @{u.username}
                   {u.title ? ` · ${u.title}` : ''}
                 </p>
               </div>
@@ -228,20 +228,25 @@ function AddUserModal({
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     name: '',
-    email: '',
+    username: '',
     password: '',
     title: '',
+    role: 'staff' as UserRole,
   });
 
   const update = (patch: Partial<typeof form>) => setForm({ ...form, ...patch });
 
   const save = async () => {
-    if (!form.name.trim() || !form.email.trim() || !form.password.trim()) {
-      toast('Name, email, and password are required', 'error');
+    if (!form.name.trim() || !form.username.trim() || !form.password.trim()) {
+      toast('Name, username, and password are required', 'error');
       return;
     }
     if (form.password.length < 6) {
       toast('Password must be at least 6 characters', 'error');
+      return;
+    }
+    if (form.role !== 'staff' && form.role !== 'admin') {
+      toast('Select a valid role', 'error');
       return;
     }
     setSaving(true);
@@ -264,10 +269,11 @@ function AddUserModal({
             apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
           },
           body: JSON.stringify({
-            email: form.email.trim(),
+            username: form.username.trim(),
             password: form.password,
             name: form.name.trim(),
             title: form.title.trim() || null,
+            role: form.role,
           }),
         },
       );
@@ -278,7 +284,7 @@ function AddUserModal({
       }
 
       toast('User created successfully', 'success');
-      setForm({ name: '', email: '', password: '', title: '' });
+      setForm({ name: '', username: '', password: '', title: '', role: 'staff' });
       onAdded();
       onClose();
     } catch (err) {
@@ -318,24 +324,37 @@ function AddUserModal({
           />
         </div>
         <div>
-          <label className="label">Email</label>
+          <label className="label">Username</label>
           <input
-            type="email"
-            value={form.email}
-            onChange={(e) => update({ email: e.target.value })}
+            type="text"
+            value={form.username}
+            onChange={(e) => update({ username: e.target.value })}
             className="input"
-            placeholder="Enter email"
+            placeholder="Enter username"
+            autoComplete="off"
           />
         </div>
         <div>
-          <label className="label">Temporary Password</label>
+          <label className="label">Password</label>
           <input
             type="password"
             value={form.password}
             onChange={(e) => update({ password: e.target.value })}
             className="input"
             placeholder="Min 6 characters"
+            autoComplete="new-password"
           />
+        </div>
+        <div>
+          <label className="label">Role</label>
+          <select
+            value={form.role}
+            onChange={(e) => update({ role: e.target.value as UserRole })}
+            className="input"
+          >
+            <option value="staff">Staff</option>
+            <option value="admin">Admin</option>
+          </select>
         </div>
         <div>
           <label className="label">Title</label>

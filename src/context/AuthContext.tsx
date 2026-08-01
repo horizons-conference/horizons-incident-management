@@ -6,7 +6,7 @@ interface AuthContextValue {
   profile: Profile | null;
   loading: boolean;
   deactivatedMessage: string | null;
-  signIn: (email: string, password: string) => Promise<{ error: string | null }>;
+  signIn: (username: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
@@ -89,9 +89,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [profile?.id]);
 
-  const signIn = useCallback(async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) return { error: error.message };
+  const signIn = useCallback(async (username: string, password: string) => {
+    const syntheticEmail = `${username.toLowerCase()}@app.local`;
+    const { error } = await supabase.auth.signInWithPassword({
+      email: syntheticEmail,
+      password,
+    });
+    if (error) return { error: 'Invalid username or password' };
     return { error: null };
   }, []);
 
